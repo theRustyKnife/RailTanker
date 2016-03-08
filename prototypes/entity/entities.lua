@@ -56,7 +56,7 @@ data:extend(
     --corpse = "medium-remnants",
     collision_box = {{-1.0, -1.0}, {1.0, 1.0}},
 	collision_mask = {"ghost-layer"},
-    selection_box = {{-1.0, -1.0}, {1.0, 1.0}},
+    selection_box = {{-1.5, -1.5}, {1.5, 1.5}},
     --selection_box = {{-0.5, -0.5}, {0.5, 0.5}},
 	order="z",
     fluid_box =
@@ -205,7 +205,7 @@ data:extend(
     collision_box = {{-1.0, -1.0}, {1.0, 1.0}},
 	collision_mask = {"ghost-layer"},
     --selection_box = {{-0.5, -0.5}, {0.5, 0.5}},
-	selection_box = {{-1.0, -1.0}, {1.0, 1.0}},
+	selection_box = {{-1.5, -1.5}, {1.5, 1.5}},
 	order="z",
     fluid_box =
     {
