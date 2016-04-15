@@ -254,67 +254,57 @@ data:extend(
       }
     },
 	flow_length_in_ticks = 360,
-    vehicle_impact_sound =  { filename = "__base__/sound/car-metal-impact.ogg", volume = 0.65 },
-    working_sound =
+  circuit_wire_connection_points =
+  {
     {
-      sound = {
-          filename = "__base__/sound/storage-tank.ogg",
-          volume = 0.8
-      },
-      apparent_volume = 1.5,
-      max_sounds_per_type = 3
-    },
-    circuit_wire_connection_points =
-    {
+      shadow =
       {
-        shadow =
-        {
-          red = {2.6875, 1.3125},
-          green = {2.6875, 1.3125},
-        },
-        wire =
-        {
-          red = {1.1875, -0.28125},
-          green = {1.1875, -0.28125},
-        }
+        red = {2.6875, 1.3125},
+        green = {2.6875, 1.3125},
       },
+      wire =
       {
-        shadow =
-        {
-          red = {0.21875, 1.1875},
-          green = {0.21875, 1.1875},
-        },
-        wire =
-        {
-          red = {-1, -0.25},
-          green = {-1, -0.25},
-        }
-      },
-      {
-        shadow =
-        {
-          red = {2.6875, 1.3125},
-          green = {2.6875, 1.3125},
-        },
-        wire =
-        {
-          red = {1.1875, -0.28125},
-          green = {1.1875, -0.28125},
-        }
-      },
-      {
-        shadow =
-        {
-          red = {0.21875, 1.1875},
-          green = {0.21875, 1.1875},
-        },
-        wire =
-        {
-          red = {-1, -0.25},
-          green = {-1, -0.25},
-        }
+        red = {1.1875, -0.28125},
+        green = {1.1875, -0.28125},
       }
     },
+    {
+      shadow =
+      {
+        red = {0.21875, 1.1875},
+        green = {0.21875, 1.1875},
+      },
+      wire =
+      {
+        red = {-1, -0.25},
+        green = {-1, -0.25},
+      }
+    },
+    {
+      shadow =
+      {
+        red = {2.6875, 1.3125},
+        green = {2.6875, 1.3125},
+      },
+      wire =
+      {
+        red = {1.1875, -0.28125},
+        green = {1.1875, -0.28125},
+      }
+    },
+    {
+      shadow =
+      {
+        red = {0.21875, 1.1875},
+        green = {0.21875, 1.1875},
+      },
+      wire =
+      {
+        red = {-1, -0.25},
+        green = {-1, -0.25},
+      }
+    }
+  },
 
     circuit_wire_max_distance = 0
   },

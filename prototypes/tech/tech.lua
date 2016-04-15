@@ -3,7 +3,8 @@ data:extend(
   {
     type = "technology",
     name = "rail-tanker",
-    icon = "__RailTanker__/graphics/rail-tanker.png",
+    icon = "__RailTanker__/graphics/rail-tanker-tech.png",
+    icon_size = 128,
     effects =
     {
       {
