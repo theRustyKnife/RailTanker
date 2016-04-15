@@ -2,8 +2,8 @@ require "defines"
 
 MOD_NAME = "RailTanker"
 
-function debugLog(message)
-  if true then -- set for debug
+function debugLog(message, force)
+  if false or force then -- set for debug
     local msg
     if type(message) == "string" then
       msg = message
@@ -16,27 +16,60 @@ function debugLog(message)
   end
 end
 
+function isValid(entity)
+  return (entity and entity.valid)
+end
+
+isTankerMoving = function(tanker)
+  return tanker.entity.train.speed ~= 0
+end
+
+isTankerValid = function(tanker)
+  return tanker and isValid(tanker.proxy)
+end
+
+isTankerEntity = function(entity)
+  return (isValid(entity) and entity.name == "rail-tanker")
+end
+
+isPumpEntity = function (entity)
+  --if isValid(entity) then debugLog(entity.name) end
+  return (isValid(entity) and entity.type == "pump")
+end
+
 Proxy = {}
-Proxy.create = function(tanker)
+Proxy.create = function(tanker, found_pump)
   --local offsetPosition = {x = position.x, y = position.y}
   --offsetPosition = position
   local position, fluidbox, surface = tanker.entity.position, tanker.fluidbox, tanker.entity.surface
-  --  local pumps = surface.find_entities_filtered{area = {{position.x - 1.5, position.y - 1.5}, {position.x + 1.5, position.y + 1.5}}, type="pump"}
-  --  local proxyName = "rail-tanker-proxy-noconnect"
-  --  if isValid(pumps[1]) then
-  --    debugLog("foundpump" .. game.tick)
-  --    proxyName = "rail-tanker-proxy"
-  --  end
-  local proxyName = "rail-tanker-proxy"
-  local foundProxy = surface.create_entity{name=proxyName, position=position, force=game.players[1].force}
+  local proxyName = "rail-tanker-proxy-noconnect"
+  if not found_pump then
+    local pumps = surface.find_entities_filtered{area = {{position.x - 1.5, position.y - 1.5}, {position.x + 1.5, position.y + 1.5}}, type="pump"}
+    if isValid(pumps[1]) then
+      debugLog("found pump " .. game.tick)
+      proxyName = "rail-tanker-proxy"
+    end
+  else
+    proxyName = "rail-tanker-proxy"
+  end
+  local foundProxy = surface.create_entity{name=proxyName, position=position, force=tanker.entity.force}
   --local foundProxy = Proxy.find(position)
   foundProxy.fluidbox[1] = fluidbox
   debugLog(foundProxy.name .. game.tick)
-  return foundProxy
+  tanker.proxy = foundProxy
+  return tanker.proxy
 end
 
 Proxy.destroy = function(carriage)
 
+end
+
+Proxy.pickup = function(tanker)
+  if tanker.proxy and tanker.proxy.valid then
+    tanker.fluidbox = tanker.proxy.fluidbox[1]
+    tanker.proxy.destroy()
+  end
+  tanker.proxy = nil
 end
 
 Proxy.find = function(position, surface)
@@ -57,31 +90,39 @@ Proxy.find = function(position, surface)
   return foundProxies
 end
 
+on_tick = function(event)
+  if #global.manualTankers == 0 then
+    script.on_event(defines.events.on_tick, nil)
+    return
+  end
+  if event.tick % 20 == 16 then
+    for i=#global.manualTankers,1,-1 do
+      local tanker = global.manualTankers[i]
+      if isValid(tanker.entity) then
+        if isTankerMoving(tanker) then
+          Proxy.pickup(tanker)
+        elseif tanker.proxy == nil then
+          Proxy.create(tanker)
+        end
+      else
+        table.remove(global.manualTankers,i)
+      end
+    end
+  end
+end
+
 add_manualTanker = function(tanker)
   table.insert(global.manualTankers, tanker)
-  script.on_event(defines.events.on_tick, onTickMain)  
+  script.on_event(defines.events.on_tick, on_tick)
 end
 
 remove_manualTanker = function(entity)
   for i=#global.manualTankers,1,-1 do
     if global.manualTankers[i].entity == entity then
       table.remove(global.manualTankers, i)
-      return      
+      return
     end
   end
-end
-
-function filter(func, arr)
-  if arr == nil then return nil end
-  local new_array = {}
-  for _,v in pairs(arr) do
-    if func(v) then table.insert(new_array, v) end
-  end
-  return new_array
-end
-
-function isValid(entity)
-  return (entity and entity.valid)
 end
 
 function getTankerFromEntity(entity)
@@ -92,6 +133,7 @@ function getTankerFromEntity(entity)
       return i, tanker
     end
   end
+  return nil
 end
 
 local function init_global()
@@ -126,93 +168,38 @@ script.on_init(on_init)
 script.on_load(on_load)
 script.on_configuration_changed(on_configuration_changed)
 
-isEntityMoving = function(entity)
-  return entity.train.speed ~= 0
-end
-
-isTankerMoving = function(tanker)
-  return (isEntityMoving(tanker.entity))
-end
-
-isTankerValid = function(tanker)
-  return(tanker ~= nil and (isValid(tanker.proxy))) --  or (isValid(tanker.entity) and (tanker.entity.state ~= 8 or tanker.entity.state ~= 9))))
-end
-
-onTickMain = function(event)
-  if #global.manualTankers == 0 then
-    script.on_event(defines.events.on_tick, nil)
-    return
-  end
-  if event.tick % 20 == 16 then
-    for i=#global.manualTankers,1,-1 do
-      local tanker = global.manualTankers[i]
-      if isValid(tanker.entity) then
-        if isEntityMoving(tanker.entity) then
-          if isValid(tanker.proxy) then
-            tanker.fluidbox = tanker.proxy.fluidbox[1]
-            tanker.proxy.destroy()
-            tanker.proxy = nil
-          else
-            tanker.proxy = nil
-          end
-        elseif tanker.proxy == nil then
-          tanker.proxy = Proxy.create(tanker)
-        end
-      else
-        table.remove(global.manualTankers,i)
-      end
-    end
-  end
-end
-
-isTankerEntity = function(entity)
-  --if isValid(entity) then debugLog(entity.name) end
-  return (isValid(entity) and entity.name == "rail-tanker")
-
-end
-
-isPumpEntity = function (entity)
-  --if isValid(entity) then debugLog(entity.name) end
-  return (isValid(entity) and entity.type == "pump")
-end
-
-
-entityRemoved = function (event)
+on_entity_removed = function (event)
   if isTankerEntity(event.entity) then
     local index, tanker = getTankerFromEntity(event.entity)
     if index and isTankerValid(tanker) then
-      if isValid(tanker.proxy) then
-        local found
-        for i=#global.manualTankers,1,-1 do
-          local m = global.manualTankers[i]
-          if m.proxy == tanker.proxy then
-            found = i
-            break
-          end
+      local found
+      for i=#global.manualTankers,1,-1 do
+        local m = global.manualTankers[i]
+        if m.proxy == tanker.proxy then
+          found = i
+          break
         end
-        tanker.proxy.destroy()
-        tanker.proxy = nil
-        table.remove(global.tankers, index)
-        if found then
-          table.remove(global.manualTankers, found)
-        end
+      end
+      tanker.proxy.destroy()
+      tanker.proxy = nil
+      table.remove(global.tankers, index)
+      if found then
+        table.remove(global.manualTankers, found)
       end
     end
   end
 end
 
-script.on_event(defines.events.on_preplayer_mined_item, entityRemoved)
-script.on_event(defines.events.on_robot_pre_mined, entityRemoved)
-script.on_event(defines.events.on_entity_died, entityRemoved)
+script.on_event(defines.events.on_preplayer_mined_item, on_entity_removed)
+script.on_event(defines.events.on_robot_pre_mined, on_entity_removed)
+script.on_event(defines.events.on_entity_died, on_entity_removed)
 
-entityBuilt = function(event)
-  debugLog("On build")
+on_entitiy_built = function(event)
   local entity = event.created_entity
   if isTankerEntity(entity) then
-    debugLog("entity is tanker")
     local tanker = {entity = entity}
     if not isTankerMoving(tanker) then
-      tanker.proxy=Proxy.create(tanker)
+      tanker.proxy = Proxy.create(tanker)
     end
     table.insert(global.tankers, tanker)
     debugLog("new tanker: " .. #global.tankers)
@@ -226,54 +213,53 @@ entityBuilt = function(event)
     local foundEntities = entity.surface.find_entities_filtered{area = {{position.x - 1.5, position.y - 1.5}, {position.x + 1.5, position.y + 1.5}}, name="rail-tanker"}
     for i,entity in pairs(foundEntities) do
       local _, tanker = getTankerFromEntity(entity)
-      if isTankerValid(tanker) and isValid(tanker.proxy) and tanker.proxy.name == "rail-tanker-proxy-noconnect" then
+      if isTankerValid(tanker) and tanker.proxy.name == "rail-tanker-proxy-noconnect" then
         tanker.fluidbox = tanker.proxy.fluidbox[1]
         tanker.proxy.destroy()
-        tanker.proxy = Proxy.create(tanker)
+        tanker.proxy = Proxy.create(tanker, true)
       end
     end
   end
 end
 
-script.on_event(defines.events.on_built_entity, entityBuilt)
-script.on_event(defines.events.on_robot_built_entity, entityBuilt)
+script.on_event(defines.events.on_built_entity, on_entitiy_built)
+script.on_event(defines.events.on_robot_built_entity, on_entitiy_built)
 
-script.on_event(defines.events.on_train_changed_state, function(event)
+on_train_changed_state = function(event)
   local train = event.train
-  local tankers = filter(isTankerEntity, train.carriages)
+  local state = train.state
+  local remove_manual = state ~= defines.trainstate.manual_control_stop and state ~= defines.trainstate.manual_control
+  local train_stopped = state == defines.trainstate.no_path or state == defines.trainstate.wait_signal or state == defines.trainstate.wait_station
+  local add_manual = state == defines.trainstate.manual_control_stop or state == defines.trainstate.manual_control
   debugLog("Tanker state: " .. train.state)
-  for i,entity in pairs(tankers) do
-    local _, tanker = getTankerFromEntity(entity)
-    if tanker == nil then
-      --debugLog("something went wrong!")
-      tanker = {entity = entity}
-      table.insert(global.tankers, tanker)
-    end
-    local state = train.state
-    if state ~= defines.trainstate.manual_control_stop and state ~= defines.trainstate.manual_control and global.manualTankers ~= nil then
-      remove_manualTanker(entity)
-    end
-
-    if state == defines.trainstate.no_path or state == defines.trainstate.wait_signal or state == defines.trainstate.wait_station then --Stopped
-      debugLog("Train Stopped " .. i)
-      --local tanker = {entity = entity, proxy=Proxy.create(entity.position), fluidbox = tanker.proxy.fluidbox[1][1]}
-      if state ~= defines.trainstate.wait_signal or (state == defines.trainstate.wait_signal and not tanker.proxy) then
-        tanker.proxy = Proxy.create(tanker)
+  for i,entity in pairs(train.cargo_wagons) do
+    if isTankerEntity(entity) then
+      local _, tanker = getTankerFromEntity(entity)
+      if tanker == nil then
+        --debugLog("something went wrong!")
+        tanker = {entity = entity}
+        table.insert(global.tankers, tanker)
       end
-    elseif state == defines.trainstate.manual_control_stop or state == defines.trainstate.manual_control then
-      debugLog("Train Manual " .. i)
-      table.insert(global.manualTankers, tanker)
-      script.on_event(defines.events.on_tick, onTickMain)
-    else --moving
-      debugLog("Train moving" .. i)
-      if isValid(tanker.proxy) then
-        tanker.fluidbox = tanker.proxy.fluidbox[1]
-        tanker.proxy.destroy()
-        tanker.proxy = nil
+      if remove_manual then
+        remove_manualTanker(entity)
+      end
+      if train_stopped then
+        debugLog("Train Stopped " .. i)
+        if state ~= defines.trainstate.wait_signal or (state == defines.trainstate.wait_signal and not tanker.proxy) then
+          tanker.proxy = Proxy.create(tanker)
+        end
+      elseif add_manual then
+        debugLog("Train Manual " .. i)
+        add_manualTanker(tanker)
+      else --moving
+        debugLog("Train moving" .. i)
+        Proxy.pickup(tanker)
       end
     end
   end
-end)
+end
+
+script.on_event(defines.events.on_train_changed_state, on_train_changed_state)
 
 -- added by Choumiko
 remote.add_interface("railtanker",
@@ -281,19 +267,15 @@ remote.add_interface("railtanker",
     getLiquidByWagon = function(wagon)
       local i, tanker = getTankerFromEntity(wagon)
       if not i then return nil end
-      local res = {amount = 0, type = nil}
-      if tanker ~= nil and isValid(tanker.entity) and tanker.entity.name == "rail-tanker" then
-        if tanker.proxy ~= nil then
-          if tanker.proxy.fluidbox[1] ~= nil then
-            res = {amount = tanker.proxy.fluidbox[1].amount, type = tanker.proxy.fluidbox[1].type}
-          end
-        else
-          if tanker.fluidbox ~= nil then
-            res = {amount = tanker.fluidbox.amount, type = tanker.fluidbox.type}
-          end
+      if isValid(tanker.entity) and tanker.entity.name == "rail-tanker" then
+        if tanker.proxy and tanker.proxy.valid and tanker.proxy.fluidbox[1] then
+          return {amount = tanker.proxy.fluidbox[1].amount, type = tanker.proxy.fluidbox[1].type}
+        end
+        if tanker.fluidbox then
+          return {amount = tanker.fluidbox.amount, type = tanker.fluidbox.type}
         end
       end
-      return res
+      return {amount = 0, type = nil}
     end,
 
     saveVar = function()
