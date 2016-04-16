@@ -221,8 +221,11 @@ local function on_init()
 end
 
 local function on_load()
-
+  if #global.manualTankers > 0 then
+    script.on_event(defines.events.on_tick, on_tick)
+  end
 end
+
 script.on_init(on_init)
 script.on_load(on_load)
 script.on_configuration_changed(on_configuration_changed)
@@ -335,7 +338,7 @@ remote.add_interface("railtanker",
       local i, tanker = getTankerFromEntity(wagon)
       if not i then return {amount = 0, type = nil} end
       if isTankerEntity(tanker.entity) then
-        if tanker.proxy and tanker.proxy.valid and tanker.proxy.fluidbox then
+        if tanker.proxy and tanker.proxy.valid and tanker.proxy.fluidbox and tanker.proxy.fluidbox[1] then
           return {amount = tanker.proxy.fluidbox[1].amount, type = tanker.proxy.fluidbox[1].type}
         end
         if tanker.fluidbox then
