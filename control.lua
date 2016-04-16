@@ -46,7 +46,7 @@ Proxy.create = function(tanker, found_pump)
   if not found_pump then
     local pumps = surface.find_entities_filtered{area = {{position.x - 1.5, position.y - 1.5}, {position.x + 1.5, position.y + 1.5}}, type="pump"}
     if isValid(pumps[1]) then
-      debugLog("found pump " .. game.tick)
+      --debugLog("found pump @"..pumps[1].position.x.."|"..pumps[1].position.y.." " .. game.tick, true)
       proxyName = "rail-tanker-proxy"
     end
   else
@@ -221,6 +221,7 @@ local function on_init()
 end
 
 local function on_load()
+  init_global()
   if #global.manualTankers > 0 then
     script.on_event(defines.events.on_tick, on_tick)
   end
