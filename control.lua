@@ -136,6 +136,60 @@ function getTankerFromEntity(entity)
   return nil
 end
 
+function map_size(surface)
+  -- determine map size
+  local min_x, min_y, max_x, max_y = 0, 0, 0, 0
+  for c in surface.get_chunks() do
+    if c.x < min_x then
+      min_x = c.x
+    elseif c.x > max_x then
+      max_x = c.x
+    end
+    if c.y < min_y then
+      min_y = c.y
+    elseif c.y > max_y then
+      max_y = c.y
+    end
+  end
+  return min_x, min_y, max_x, max_y
+end
+
+function findTankers(show)
+  local surface = game.surfaces['nauvis']
+  local min_x, min_y, max_x, max_y = map_size(surface)
+
+  if show then
+    debugLog("Searching tankers..",true)
+  end
+  -- create bounding box covering entire generated map
+  local bounds = {{min_x*32,min_y*32},{max_x*32,max_y*32}}
+  local found = 0
+  for _, ent in pairs(surface.find_entities_filtered{area=bounds, type="cargo-wagon"}) do
+    local i, tanker = getTankerFromEntity(ent)
+    if i then
+        local proxy = Proxy.find(ent.position,ent.surface)
+        if proxy and proxy.valid then
+          tanker.proxy = proxy
+          if proxy.fluidbox and proxy.fluidbox[1] then
+            tanker.fluidbox = proxy.fluidbox[1]
+          end
+        end
+        if ent.train.state ==  defines.trainstate.manual_control_stop or ent.train.state == defines.trainstate.manual_control then
+          add_manualTanker(tanker)
+        end
+    else
+      on_entitiy_built({created_entity=ent})
+      found = found+1
+    end     
+  end
+  if show then
+    debugLog("Found "..#global.tankers.." tankers",true)
+    if found > 0 then
+      debugLog("Added "..found.." new tankers", true)
+    end
+  end
+end
+
 local function init_global()
   global = global or {}
   global.tankers = global.tankers or {}
@@ -151,8 +205,10 @@ local function on_configuration_changed(data)
   if data.mod_changes[MOD_NAME] then
     newVersion = data.mod_changes[MOD_NAME].new_version
     oldVersion = data.mod_changes[MOD_NAME].old_version
-    if oldVersion then
+    if oldVersion < "1.2.0" then
       init_global()
+      global.manualTankers = {}
+      findTankers(true)
     end
   end
 end
@@ -261,14 +317,13 @@ end
 
 script.on_event(defines.events.on_train_changed_state, on_train_changed_state)
 
--- added by Choumiko
 remote.add_interface("railtanker",
   {
     getLiquidByWagon = function(wagon)
       local i, tanker = getTankerFromEntity(wagon)
-      if not i then return nil end
-      if isValid(tanker.entity) and tanker.entity.name == "rail-tanker" then
-        if tanker.proxy and tanker.proxy.valid and tanker.proxy.fluidbox[1] then
+      if not i then return {amount = 0, type = nil} end
+      if isTankerEntity(tanker.entity) then
+        if tanker.proxy and tanker.proxy.valid and tanker.proxy.fluidbox then
           return {amount = tanker.proxy.fluidbox[1].amount, type = tanker.proxy.fluidbox[1].type}
         end
         if tanker.fluidbox then
