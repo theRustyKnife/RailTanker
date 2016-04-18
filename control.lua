@@ -182,10 +182,40 @@ function findTankers(show)
       found = found+1
     end
   end
+  local removed = 0
+  for _, ent in pairs(surface.find_entities_filtered{area=bounds, name="rail-tanker-proxy"}) do
+    local found = false
+    for i, tanker in pairs(global.tankers) do
+      if ent == tanker.proxy then
+        found = true
+        break
+      end
+    end
+    if not found then
+      removed = removed + 1
+      ent.destroy()
+    end
+  end
+  for _, ent in pairs(surface.find_entities_filtered{area=bounds, name="rail-tanker-proxy-noconnect"}) do
+    local found = false
+    for i, tanker in pairs(global.tankers) do
+      if ent == tanker.proxy then
+        found = true
+        break
+      end
+    end
+    if not found then
+      removed = removed + 1
+      ent.destroy()
+    end
+  end
   if show then
     debugLog("Found "..#global.tankers.." tankers",true)
     if found > 0 then
-      debugLog("Added "..found.." new tankers", true)
+      --debugLog("Added "..found.." new tankers", true)
+    end
+    if removed > 0 then
+      debugLog("Removed "..removed.." invalid tanks", true)
     end
   end
 end
@@ -206,7 +236,7 @@ local function on_configuration_changed(data)
     if data.mod_changes[MOD_NAME] then
       newVersion = data.mod_changes[MOD_NAME].new_version
       oldVersion = data.mod_changes[MOD_NAME].old_version
-      if oldVersion < "1.2.0" then
+      if oldVersion < "1.2.2" then
         init_global()
         global.manualTankers = {}
         findTankers(true)
@@ -342,7 +372,7 @@ remote.add_interface("railtanker",
         if tanker.proxy and tanker.proxy.valid and tanker.proxy.fluidbox and tanker.proxy.fluidbox[1] then
           return {amount = tanker.proxy.fluidbox[1].amount, type = tanker.proxy.fluidbox[1].type}
         end
-        if tanker.fluidbox then
+        if not tanker.proxy and tanker.fluidbox then
           return {amount = tanker.fluidbox.amount, type = tanker.fluidbox.type}
         end
       end
@@ -351,6 +381,11 @@ remote.add_interface("railtanker",
 
     saveVar = function()
       game.write_file("railtanker.lua", serpent.block(global, {name="glob"}))
+    end,
+
+    findTankers = function(wagon)
+      global.manualTankers = {}
+      findTankers(true)
     end,
   }
 )
