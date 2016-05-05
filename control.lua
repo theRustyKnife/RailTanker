@@ -236,7 +236,8 @@ local function on_configuration_changed(data)
     if data.mod_changes[MOD_NAME] then
       newVersion = data.mod_changes[MOD_NAME].new_version
       oldVersion = data.mod_changes[MOD_NAME].old_version
-      if oldVersion < "1.2.2" then
+      init_global()
+      if oldVersion and oldVersion < "1.2.2" then
         init_global()
         global.manualTankers = {}
         findTankers(true)
