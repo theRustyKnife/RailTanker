@@ -10,7 +10,7 @@ function debugLog(message, force)
     else
       msg = serpent.dump(message, {name="var", comment=false, sparse=false, sortkeys=true})
     end
-    for i,player in pairs(game.players) do
+    for _,player in pairs(game.players) do
       player.print(msg)
     end
   end
@@ -60,10 +60,6 @@ Proxy.create = function(tanker, found_pump)
   return tanker.proxy
 end
 
-Proxy.destroy = function(carriage)
-
-end
-
 Proxy.pickup = function(tanker)
   if tanker.proxy and tanker.proxy.valid then
     tanker.fluidbox = tanker.proxy.fluidbox[1]
@@ -75,7 +71,7 @@ end
 Proxy.find = function(position, surface)
   local entities = surface.find_entities{{position.x - 0.5, position.y - 0.5}, {position.x + 0.5, position.y + 0.5}}
   local foundProxies = nil
-  for i, entity in pairs(entities) do
+  for _, entity in pairs(entities) do
     if isValid(entity) and (entity.name == "rail-tanker-proxy" or entity.name == "rail-tanker-proxy-noconnect") then
       --debugLog("Found entity: " .. entity.name)
       if foundProxies == nil then
@@ -184,8 +180,8 @@ function findTankers(show)
   end
   local removed = 0
   for _, ent in pairs(surface.find_entities_filtered{area=bounds, name="rail-tanker-proxy"}) do
-    local found = false
-    for i, tanker in pairs(global.tankers) do
+    found = false
+    for _, tanker in pairs(global.tankers) do
       if ent == tanker.proxy then
         found = true
         break
@@ -197,8 +193,8 @@ function findTankers(show)
     end
   end
   for _, ent in pairs(surface.find_entities_filtered{area=bounds, name="rail-tanker-proxy-noconnect"}) do
-    local found = false
-    for i, tanker in pairs(global.tankers) do
+    found = false
+    for _, tanker in pairs(global.tankers) do
       if ent == tanker.proxy then
         found = true
         break
@@ -211,9 +207,6 @@ function findTankers(show)
   end
   if show then
     debugLog("Found "..#global.tankers.." tankers",true)
-    if found > 0 then
-      --debugLog("Added "..found.." new tankers", true)
-    end
     if removed > 0 then
       debugLog("Removed "..removed.." invalid tanks", true)
     end
@@ -227,12 +220,12 @@ local function init_global()
 end
 
 local function on_configuration_changed(data)
-  local status, err = pcall(function()
+  local _, err = pcall(function()
     if not data or not data.mod_changes then
       return
     end
-    local newVersion = false
-    local oldVersion = false
+    local newVersion
+    local oldVersion
     if data.mod_changes[MOD_NAME] then
       newVersion = data.mod_changes[MOD_NAME].new_version
       oldVersion = data.mod_changes[MOD_NAME].old_version
@@ -263,7 +256,7 @@ script.on_load(on_load)
 script.on_configuration_changed(on_configuration_changed)
 
 on_entity_removed = function (event)
-  local status, err = pcall(function()
+  local _, err = pcall(function()
     if isTankerEntity(event.entity) then
       local index, tanker = getTankerFromEntity(event.entity)
       if index and isTankerValid(tanker) then
@@ -292,7 +285,7 @@ script.on_event(defines.events.on_robot_pre_mined, on_entity_removed)
 script.on_event(defines.events.on_entity_died, on_entity_removed)
 
 on_entitiy_built = function(event)
-  local status, err = pcall(function()
+  local _, err = pcall(function()
     local entity = event.created_entity
     if isTankerEntity(entity) then
       local tanker = {entity = entity}
@@ -309,8 +302,8 @@ on_entitiy_built = function(event)
     elseif isPumpEntity(entity) then
       local position = entity.position
       local foundEntities = entity.surface.find_entities_filtered{area = {{position.x - 1.5, position.y - 1.5}, {position.x + 1.5, position.y + 1.5}}, name="rail-tanker"}
-      for i,entity in pairs(foundEntities) do
-        local _, tanker = getTankerFromEntity(entity)
+      for _,ent in pairs(foundEntities) do
+        local _, tanker = getTankerFromEntity(ent)
         if isTankerValid(tanker) and tanker.proxy.name == "rail-tanker-proxy-noconnect" then
           tanker.fluidbox = tanker.proxy.fluidbox[1]
           tanker.proxy.destroy()
@@ -326,7 +319,7 @@ script.on_event(defines.events.on_built_entity, on_entitiy_built)
 script.on_event(defines.events.on_robot_built_entity, on_entitiy_built)
 
 on_train_changed_state = function(event)
-  local status, err = pcall(function()
+  local _, err = pcall(function()
     local train = event.train
     local state = train.state
     local remove_manual = state ~= defines.trainstate.manual_control_stop and state ~= defines.trainstate.manual_control
@@ -384,7 +377,7 @@ remote.add_interface("railtanker",
       game.write_file("railtanker.lua", serpent.block(global, {name="glob"}))
     end,
 
-    findTankers = function(wagon)
+    findTankers = function()
       global.manualTankers = {}
       findTankers(true)
     end,
