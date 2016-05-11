@@ -2,7 +2,7 @@ require "defines"
 
 MOD_NAME = "RailTanker"
 
-function debugLog(message, force)
+function debugLog(message, force, version)
   if false or force then -- set for debug
     local msg
     if type(message) == "string" then
@@ -10,8 +10,18 @@ function debugLog(message, force)
     else
       msg = serpent.dump(message, {name="var", comment=false, sparse=false, sortkeys=true})
     end
+    msg = version and version .. " " .. msg or msg
+    log(msg)
     for _,player in pairs(game.players) do
       player.print(msg)
+    end
+  end
+end
+
+function key_by_value(tbl, value)
+  for i,c in pairs(tbl) do
+    if c == value then
+      return i
     end
   end
 end
@@ -33,7 +43,6 @@ isTankerEntity = function(entity)
 end
 
 isPumpEntity = function (entity)
-  --if isValid(entity) then debugLog(entity.name) end
   return (isValid(entity) and entity.type == "pump")
 end
 
@@ -55,13 +64,14 @@ Proxy.create = function(tanker, found_pump)
   local foundProxy = surface.create_entity{name=proxyName, position=position, force=tanker.entity.force}
   --local foundProxy = Proxy.find(position)
   foundProxy.fluidbox[1] = fluidbox
-  debugLog(foundProxy.name .. game.tick)
+  debugLog(game.tick .. " created " .. foundProxy.name)
   tanker.proxy = foundProxy
   return tanker.proxy
 end
 
 Proxy.pickup = function(tanker)
   if tanker.proxy and tanker.proxy.valid then
+    debugLog(game.tick .. "pickup " .. serpent.line(tanker.proxy.position,{comment=false}))
     tanker.fluidbox = tanker.proxy.fluidbox[1]
     tanker.proxy.destroy()
   end
@@ -73,7 +83,7 @@ Proxy.find = function(position, surface)
   local foundProxies = nil
   for _, entity in pairs(entities) do
     if isValid(entity) and (entity.name == "rail-tanker-proxy" or entity.name == "rail-tanker-proxy-noconnect") then
-      --debugLog("Found entity: " .. entity.name)
+      debugLog(game.tick .. " found entity: " .. entity.name)
       if foundProxies == nil then
         foundProxies = entity
       else
@@ -115,6 +125,7 @@ end
 remove_manualTanker = function(entity)
   for i=#global.manualTankers,1,-1 do
     if global.manualTankers[i].entity == entity then
+      debugLog(game.tick .. " remove manual " .. i)
       table.remove(global.manualTankers, i)
       return
     end
@@ -235,9 +246,11 @@ local function on_configuration_changed(data)
         global.manualTankers = {}
         findTankers(true)
       end
+
+      global.version = newVersion
     end
   end)
-  if err then debugLog(err,true) end
+  if err then debugLog(err,true, global.version) end
 end
 
 local function on_init()
@@ -277,7 +290,7 @@ on_entity_removed = function (event)
       end
     end
   end)
-  if err then debugLog(err,true) end
+  if err then debugLog(err,true, global.version) end
 end
 
 script.on_event(defines.events.on_preplayer_mined_item, on_entity_removed)
@@ -312,7 +325,7 @@ on_entitiy_built = function(event)
       end
     end
   end)
-  if err then debugLog(err,true) end
+  if err then debugLog(err,true, global.version) end
 end
 
 script.on_event(defines.events.on_built_entity, on_entitiy_built)
@@ -323,9 +336,9 @@ on_train_changed_state = function(event)
     local train = event.train
     local state = train.state
     local remove_manual = state ~= defines.trainstate.manual_control_stop and state ~= defines.trainstate.manual_control
-    local train_stopped = state == defines.trainstate.no_path or state == defines.trainstate.wait_signal or state == defines.trainstate.wait_station
+    local train_stopped = state == defines.trainstate.wait_station
     local add_manual = state == defines.trainstate.manual_control_stop or state == defines.trainstate.manual_control
-    debugLog("Tanker state: " .. train.state)
+    debugLog(game.tick .. " Tanker state: " .. key_by_value(defines.trainstate, train.state))
     for i,entity in pairs(train.cargo_wagons) do
       if isTankerEntity(entity) then
         local _, tanker = getTankerFromEntity(entity)
@@ -338,21 +351,19 @@ on_train_changed_state = function(event)
           remove_manualTanker(entity)
         end
         if train_stopped then
-          debugLog("Train Stopped " .. i)
-          if state ~= defines.trainstate.wait_signal or (state == defines.trainstate.wait_signal and not tanker.proxy) then
-            tanker.proxy = Proxy.create(tanker)
-          end
+          debugLog(game.tick .. " Train Stopped " .. i)
+          tanker.proxy = Proxy.create(tanker)
         elseif add_manual then
-          debugLog("Train Manual " .. i)
+          debugLog(game.tick .. " Train Manual " .. i)
           add_manualTanker(tanker)
         else --moving
-          debugLog("Train moving" .. i)
+          debugLog(game.tick .. " Train moving" .. i)
           Proxy.pickup(tanker)
         end
       end
     end
   end)
-  if err then debugLog(err,true) end
+  if err then debugLog(err,true, global.version) end
 end
 
 script.on_event(defines.events.on_train_changed_state, on_train_changed_state)
