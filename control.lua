@@ -46,6 +46,19 @@ isPumpEntity = function (entity)
   return (isValid(entity) and entity.type == "pump")
 end
 
+function addFluidItems(tanker)
+  if not tanker.entity.has_items_inside() and tanker.fluidbox then
+	  local fluid_name = tanker.fluidbox.type
+	  fluid_name = fluid_name .. "-in-tanker"
+	  if game.item_prototypes[fluid_name] then
+		  local tanker_inventory = tanker.entity.get_inventory(defines.inventory.chest)
+		  tanker_inventory.setbar()
+		  tanker.entity.insert{name=fluid_name, count=math.floor(tanker.fluidbox.amount)}
+		  tanker_inventory.setbar(0)
+	  end
+  end
+end
+
 Proxy = {}
 Proxy.create = function(tanker, found_pump)
   --local offsetPosition = {x = position.x, y = position.y}
@@ -101,18 +114,18 @@ on_tick = function(event)
     script.on_event(defines.events.on_tick, nil)
     return
   end
-  if event.tick % 20 == 16 then
-    for i=#global.manualTankers,1,-1 do
-      local tanker = global.manualTankers[i]
-      if isValid(tanker.entity) then
-        if isTankerMoving(tanker) then
-          Proxy.pickup(tanker)
-        elseif tanker.proxy == nil then
-          Proxy.create(tanker)
-        end
-      else
-        table.remove(global.manualTankers,i)
+  for i=#global.manualTankers,1,-1 do
+    local tanker = global.manualTankers[i]
+    if isValid(tanker.entity) then
+      if isTankerMoving(tanker) then
+        Proxy.pickup(tanker)
+	    addFluidItems(tanker)
+      elseif tanker.proxy == nil then
+        Proxy.create(tanker)
+	    tanker.entity.clear_items_inside()
       end
+    else
+      table.remove(global.manualTankers,i)
     end
   end
 end
@@ -185,7 +198,7 @@ function findTankers(show)
         add_manualTanker(tanker)
       end
     else
-      on_entitiy_built({created_entity=ent})
+      on_entity_built({created_entity=ent})
       found = found+1
     end
   end
@@ -297,11 +310,14 @@ script.on_event(defines.events.on_preplayer_mined_item, on_entity_removed)
 script.on_event(defines.events.on_robot_pre_mined, on_entity_removed)
 script.on_event(defines.events.on_entity_died, on_entity_removed)
 
-on_entitiy_built = function(event)
+on_entity_built = function(event)
   local _, err = pcall(function()
     local entity = event.created_entity
     if isTankerEntity(entity) then
       local tanker = {entity = entity}
+	  entity.operable = false
+	  local tanker_inventory = entity.get_inventory(defines.inventory.chest)
+	  tanker_inventory.setbar(0)
       if not isTankerMoving(tanker) then
         tanker.proxy = Proxy.create(tanker)
       end
@@ -328,8 +344,8 @@ on_entitiy_built = function(event)
   if err then debugLog(err,true, global.version) end
 end
 
-script.on_event(defines.events.on_built_entity, on_entitiy_built)
-script.on_event(defines.events.on_robot_built_entity, on_entitiy_built)
+script.on_event(defines.events.on_built_entity, on_entity_built)
+script.on_event(defines.events.on_robot_built_entity, on_entity_built)
 
 on_train_changed_state = function(event)
   local _, err = pcall(function()
@@ -353,12 +369,14 @@ on_train_changed_state = function(event)
         if train_stopped then
           debugLog(game.tick .. " Train Stopped " .. i)
           tanker.proxy = Proxy.create(tanker)
+		  tanker.entity.clear_items_inside()
         elseif add_manual then
           debugLog(game.tick .. " Train Manual " .. i)
           add_manualTanker(tanker)
         else --moving
           debugLog(game.tick .. " Train moving" .. i)
           Proxy.pickup(tanker)
+		  addFluidItems(tanker)
         end
       end
     end
