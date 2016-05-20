@@ -114,20 +114,18 @@ on_tick = function(event)
     script.on_event(defines.events.on_tick, nil)
     return
   end
-  if event.tick % 20 == 16 then
-    for i=#global.manualTankers,1,-1 do
-      local tanker = global.manualTankers[i]
-      if isValid(tanker.entity) then
-        if isTankerMoving(tanker) then
-          Proxy.pickup(tanker)
-		  addFluidItems(tanker)
-        elseif tanker.proxy == nil then
-          Proxy.create(tanker)
-		  tanker.entity.clear_items_inside()
-        end
-      else
-        table.remove(global.manualTankers,i)
+  for i=#global.manualTankers,1,-1 do
+    local tanker = global.manualTankers[i]
+    if isValid(tanker.entity) then
+      if isTankerMoving(tanker) then
+        Proxy.pickup(tanker)
+	    addFluidItems(tanker)
+      elseif tanker.proxy == nil then
+        Proxy.create(tanker)
+	    tanker.entity.clear_items_inside()
       end
+    else
+      table.remove(global.manualTankers,i)
     end
   end
 end
