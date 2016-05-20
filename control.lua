@@ -185,7 +185,7 @@ function findTankers(show)
         add_manualTanker(tanker)
       end
     else
-      on_entitiy_built({created_entity=ent})
+      on_entity_built({created_entity=ent})
       found = found+1
     end
   end
@@ -297,7 +297,7 @@ script.on_event(defines.events.on_preplayer_mined_item, on_entity_removed)
 script.on_event(defines.events.on_robot_pre_mined, on_entity_removed)
 script.on_event(defines.events.on_entity_died, on_entity_removed)
 
-on_entitiy_built = function(event)
+on_entity_built = function(event)
   local _, err = pcall(function()
     local entity = event.created_entity
     if isTankerEntity(entity) then
@@ -328,8 +328,8 @@ on_entitiy_built = function(event)
   if err then debugLog(err,true, global.version) end
 end
 
-script.on_event(defines.events.on_built_entity, on_entitiy_built)
-script.on_event(defines.events.on_robot_built_entity, on_entitiy_built)
+script.on_event(defines.events.on_built_entity, on_entity_built)
+script.on_event(defines.events.on_robot_built_entity, on_entity_built)
 
 on_train_changed_state = function(event)
   local _, err = pcall(function()
