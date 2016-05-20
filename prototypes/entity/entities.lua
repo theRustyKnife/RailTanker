@@ -41,7 +41,7 @@ data:extend(
       line_length = 4,
       lines_per_file = 8,
       shift={1.93, -0.38}
-	  
+
     },
 	--scale=20,
     rail_category = "regular"
@@ -65,31 +65,31 @@ data:extend(
       --pipe_covers = pipecoverspictures(),
       pipe_connections =
       {
-	  
-	  
+
+
 		{ position = {0.4, -1.2} },
 		{ position = {-0.4, -1.2} },
 		-- { position = {1, -1.2} },
 		-- { position = {-1, -1.2} },
-		
+
        { position = {-0.4, 1.2} },
        { position = {0.4, 1.2} },
         -- { position = {1, 1.2} },
         -- { position = {-1, 1.2} },
-		
-		
+
+
         { position = {1.2, 0.4} },
         { position = {1.2, -0.4} },
         -- { position = {1.2, 1} },
         -- { position = {1.2, -1} },
-		
-		
+
+
         { position = {-1.2, 0.4} },
         { position = {-1.2, -0.4} },
         -- { position = {-1.2, 1} },
         -- { position = {-1.2, -1} },
-		
-		
+
+
       },
     },
 	window_bounding_box = {{-0.125, 0.6875}, {0.1875, 1.1875}},
@@ -194,7 +194,7 @@ data:extend(
 
     circuit_wire_max_distance = 0
   },
-  
+
   {
     type = "storage-tank",
     name = "rail-tanker-proxy-noconnect",
@@ -213,7 +213,7 @@ data:extend(
       -- pipe_covers = pipecoverspictures(),
       pipe_connections =
       {
-		
+
       },
     },
     window_bounding_box = {{-0.125, 0.6875}, {0.1875, 1.1875}},
