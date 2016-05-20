@@ -48,14 +48,17 @@ end
 
 function addFluidItems(tanker)
   if not tanker.entity.has_items_inside() and tanker.fluidbox then
-	  local fluid_name = tanker.fluidbox.type
-	  fluid_name = fluid_name .. "-in-tanker"
-	  if game.item_prototypes[fluid_name] then
-		  local tanker_inventory = tanker.entity.get_inventory(defines.inventory.chest)
-		  tanker_inventory.setbar()
-		  tanker.entity.insert{name=fluid_name, count=math.floor(tanker.fluidbox.amount)}
-		  tanker_inventory.setbar(0)
-	  end
+    local fluid_name = tanker.fluidbox.type
+    fluid_name = fluid_name .. "-in-tanker"
+    if game.item_prototypes[fluid_name] then
+      local amount = math.floor(tanker.fluidbox.amount)
+      if amount > 0 then
+        local tanker_inventory = tanker.entity.get_inventory(defines.inventory.chest)
+        tanker_inventory.setbar()
+        tanker.entity.insert{name=fluid_name, count=amount}
+        tanker_inventory.setbar(0)
+      end
+    end
   end
 end
 
@@ -114,15 +117,16 @@ on_tick = function(event)
     script.on_event(defines.events.on_tick, nil)
     return
   end
-  for i=#global.manualTankers,1,-1 do
+
+  for i = #global.manualTankers, 1, -1 do
     local tanker = global.manualTankers[i]
     if isValid(tanker.entity) then
       if isTankerMoving(tanker) then
         Proxy.pickup(tanker)
-	    addFluidItems(tanker)
+        addFluidItems(tanker)
       elseif tanker.proxy == nil then
         Proxy.create(tanker)
-	    tanker.entity.clear_items_inside()
+        tanker.entity.clear_items_inside()
       end
     else
       table.remove(global.manualTankers,i)
@@ -187,6 +191,7 @@ function findTankers(show)
   for _, ent in pairs(surface.find_entities_filtered{area=bounds, type="cargo-wagon"}) do
     local i, tanker = getTankerFromEntity(ent)
     if i then
+      ent.operable = false
       local proxy = Proxy.find(ent.position,ent.surface)
       if proxy and proxy.valid then
         tanker.proxy = proxy
@@ -243,6 +248,33 @@ local function init_global()
   global.manualTankers = global.manualTankers or {}
 end
 
+local update_from_version = {
+  ["0.0.0"] = function()
+    init_global()
+    global.manualTankers = {}
+    findTankers(true)
+    return "1.2.22"
+  end,
+
+  ["1.2.22"] = function()
+    for _, t in pairs(global.tankers) do
+      if isValid(t.entity) then
+        t.entity.operable = false
+      end
+    end
+
+    for _, t in pairs(global.manualTankers) do
+      if isValid(t.entity) then
+        t.entity.operable = false
+      end
+    end
+    return "1.3.0"
+  end,
+
+
+
+}
+
 local function on_configuration_changed(data)
   local _, err = pcall(function()
     if not data or not data.mod_changes then
@@ -254,10 +286,11 @@ local function on_configuration_changed(data)
       newVersion = data.mod_changes[MOD_NAME].new_version
       oldVersion = data.mod_changes[MOD_NAME].old_version
       init_global()
-      if oldVersion and oldVersion < "1.2.2" then
-        init_global()
-        global.manualTankers = {}
-        findTankers(true)
+      if oldVersion and newVersion then
+        local ver = update_from_version[oldVersion] and oldVersion or "0.0.0"
+        while ver ~= "1.3.0" do
+          ver = update_from_version[ver]()
+        end
       end
 
       global.version = newVersion
@@ -315,9 +348,9 @@ on_entity_built = function(event)
     local entity = event.created_entity
     if isTankerEntity(entity) then
       local tanker = {entity = entity}
-	  entity.operable = false
-	  local tanker_inventory = entity.get_inventory(defines.inventory.chest)
-	  tanker_inventory.setbar(0)
+      entity.operable = false
+      local tanker_inventory = entity.get_inventory(defines.inventory.chest)
+      tanker_inventory.setbar(0)
       if not isTankerMoving(tanker) then
         tanker.proxy = Proxy.create(tanker)
       end
@@ -369,14 +402,14 @@ on_train_changed_state = function(event)
         if train_stopped then
           debugLog(game.tick .. " Train Stopped " .. i)
           tanker.proxy = Proxy.create(tanker)
-		  tanker.entity.clear_items_inside()
+          tanker.entity.clear_items_inside()
         elseif add_manual then
           debugLog(game.tick .. " Train Manual " .. i)
           add_manualTanker(tanker)
         else --moving
           debugLog(game.tick .. " Train moving" .. i)
           Proxy.pickup(tanker)
-		  addFluidItems(tanker)
+          addFluidItems(tanker)
         end
       end
     end
