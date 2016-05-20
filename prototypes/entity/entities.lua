@@ -5,7 +5,7 @@ data:extend(
     name = "rail-tanker",
 	icon = "__RailTanker__/graphics/rail-tanker.png",
     flags = {"placeable-neutral", "player-creation", "placeable-off-grid"},
-    inventory_size = 0,
+    inventory_size = 1,
     minable = {mining_time = 1, result = "rail-tanker"},
     max_health = 600,
     corpse = "medium-remnants",

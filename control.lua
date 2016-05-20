@@ -46,6 +46,19 @@ isPumpEntity = function (entity)
   return (isValid(entity) and entity.type == "pump")
 end
 
+function addFluidItems(tanker)
+  if not tanker.entity.has_items_inside() and tanker.fluidbox then
+	  local fluid_name = tanker.fluidbox.type
+	  fluid_name = fluid_name .. "-in-tanker"
+	  if game.item_prototypes[fluid_name] then
+		  local tanker_inventory = tanker.entity.get_inventory(defines.inventory.chest)
+		  tanker_inventory.setbar()
+		  tanker.entity.insert{name=fluid_name, count=math.floor(tanker.fluidbox.amount)}
+		  tanker_inventory.setbar(0)
+	  end
+  end
+end
+
 Proxy = {}
 Proxy.create = function(tanker, found_pump)
   --local offsetPosition = {x = position.x, y = position.y}
@@ -107,8 +120,10 @@ on_tick = function(event)
       if isValid(tanker.entity) then
         if isTankerMoving(tanker) then
           Proxy.pickup(tanker)
+		  addFluidItems(tanker)
         elseif tanker.proxy == nil then
           Proxy.create(tanker)
+		  tanker.entity.clear_items_inside()
         end
       else
         table.remove(global.manualTankers,i)
@@ -302,6 +317,9 @@ on_entity_built = function(event)
     local entity = event.created_entity
     if isTankerEntity(entity) then
       local tanker = {entity = entity}
+	  entity.operable = false
+	  local tanker_inventory = entity.get_inventory(defines.inventory.chest)
+	  tanker_inventory.setbar(0)
       if not isTankerMoving(tanker) then
         tanker.proxy = Proxy.create(tanker)
       end
@@ -353,12 +371,14 @@ on_train_changed_state = function(event)
         if train_stopped then
           debugLog(game.tick .. " Train Stopped " .. i)
           tanker.proxy = Proxy.create(tanker)
+		  tanker.entity.clear_items_inside()
         elseif add_manual then
           debugLog(game.tick .. " Train Manual " .. i)
           add_manualTanker(tanker)
         else --moving
           debugLog(game.tick .. " Train moving" .. i)
           Proxy.pickup(tanker)
+		  addFluidItems(tanker)
         end
       end
     end
