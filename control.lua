@@ -1,4 +1,7 @@
-require "defines"
+if not defines then
+  require "defines"
+  defines.train_state = defines.trainstate
+end
 
 MOD_NAME = "RailTanker"
 
@@ -80,14 +83,14 @@ Proxy.create = function(tanker, found_pump)
   local foundProxy = surface.create_entity{name=proxyName, position=position, force=tanker.entity.force}
   --local foundProxy = Proxy.find(position)
   foundProxy.fluidbox[1] = fluidbox
-  debugLog(game.tick .. " created " .. foundProxy.name)
+  --debugLog(game.tick .. " created " .. foundProxy.name)
   tanker.proxy = foundProxy
   return tanker.proxy
 end
 
 Proxy.pickup = function(tanker)
   if tanker.proxy and tanker.proxy.valid then
-    debugLog(game.tick .. "pickup " .. serpent.line(tanker.proxy.position,{comment=false}))
+    --debugLog(game.tick .. "pickup " .. serpent.line(tanker.proxy.position,{comment=false}))
     tanker.fluidbox = tanker.proxy.fluidbox[1]
     tanker.proxy.destroy()
   end
@@ -99,7 +102,7 @@ Proxy.find = function(position, surface)
   local foundProxies = nil
   for _, entity in pairs(entities) do
     if isValid(entity) and (entity.name == "rail-tanker-proxy" or entity.name == "rail-tanker-proxy-noconnect") then
-      debugLog(game.tick .. " found entity: " .. entity.name)
+      --debugLog(game.tick .. " found entity: " .. entity.name)
       if foundProxies == nil then
         foundProxies = entity
       else
@@ -142,7 +145,7 @@ end
 remove_manualTanker = function(entity)
   for i=#global.manualTankers,1,-1 do
     if global.manualTankers[i].entity == entity then
-      debugLog(game.tick .. " remove manual " .. i)
+      --debugLog(game.tick .. " remove manual " .. i)
       table.remove(global.manualTankers, i)
       return
     end
@@ -199,7 +202,7 @@ function findTankers(show)
           tanker.fluidbox = proxy.fluidbox[1]
         end
       end
-      if ent.train.state ==  defines.trainstate.manual_control_stop or ent.train.state == defines.trainstate.manual_control then
+      if ent.train.state ==  defines.train_state.manual_control_stop or ent.train.state == defines.train_state.manual_control then
         add_manualTanker(tanker)
       end
     else
@@ -270,9 +273,6 @@ local update_from_version = {
     end
     return "1.3.0"
   end,
-
-
-
 }
 
 local function on_configuration_changed(data)
@@ -384,10 +384,10 @@ on_train_changed_state = function(event)
   local _, err = pcall(function()
     local train = event.train
     local state = train.state
-    local remove_manual = state ~= defines.trainstate.manual_control_stop and state ~= defines.trainstate.manual_control
-    local train_stopped = state == defines.trainstate.wait_station
-    local add_manual = state == defines.trainstate.manual_control_stop or state == defines.trainstate.manual_control
-    debugLog(game.tick .. " Tanker state: " .. key_by_value(defines.trainstate, train.state))
+    local remove_manual = state ~= defines.train_state.manual_control_stop and state ~= defines.train_state.manual_control
+    local train_stopped = state == defines.train_state.wait_station
+    local add_manual = state == defines.train_state.manual_control_stop or state == defines.train_state.manual_control
+    --debugLog(game.tick .. " Tanker state: " .. key_by_value(defines.train_state, train.state))
     for i,entity in pairs(train.cargo_wagons) do
       if isTankerEntity(entity) then
         local _, tanker = getTankerFromEntity(entity)
@@ -400,14 +400,14 @@ on_train_changed_state = function(event)
           remove_manualTanker(entity)
         end
         if train_stopped then
-          debugLog(game.tick .. " Train Stopped " .. i)
+          --debugLog(game.tick .. " Train Stopped " .. i)
           tanker.proxy = Proxy.create(tanker)
           tanker.entity.clear_items_inside()
         elseif add_manual then
-          debugLog(game.tick .. " Train Manual " .. i)
+          --debugLog(game.tick .. " Train Manual " .. i)
           add_manualTanker(tanker)
         else --moving
-          debugLog(game.tick .. " Train moving" .. i)
+          --debugLog(game.tick .. " Train moving" .. i)
           Proxy.pickup(tanker)
           addFluidItems(tanker)
         end
