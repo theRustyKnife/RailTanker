@@ -1,26 +1,24 @@
-data:extend(
-  {
+function copyPrototype(type, name, newName, change_results)
+  if not data.raw[type][name] then error("type "..type.." "..name.." doesn't exist") end
+  local p = table.deepcopy(data.raw[type][name])
+  p.name = newName
+  if p.minable and p.minable.result then
+    p.minable.result = newName
+  end
+  if change_results then
+    if p.place_result then
+      p.place_result = newName
+    end
+    if p.result then
+      p.result = newName
+    end
+  end
+  return p
+end
+local tanker = copyPrototype("cargo-wagon", "cargo-wagon", "rail-tanker", true)
+tanker.color = {r = 1.0, g = 1.0, b = 1.0, a = 0.5}
+tanker.pictures = 
     {
-      type = "cargo-wagon",
-      name = "rail-tanker",
-      icon = "__RailTanker__/graphics/rail-tanker.png",
-      flags = {"placeable-neutral", "player-creation", "placeable-off-grid"},
-      inventory_size = 1,
-      minable = {mining_time = 1, result = "rail-tanker"},
-      max_health = 600,
-      corpse = "medium-remnants",
-      collision_box = {{-0.6, -2.5}, {0.6, 2.5}},
-      selection_box = {{-0.7, -2.5}, {1, 2.5}},
-      weight = 1000,
-      max_speed = 1.5,
-      braking_force = 3,
-      friction_force = 0.0015,
-      air_resistance = 0.002,
-      connection_distance = 3.3,
-      joint_distance = 4,
-      energy_per_hit_point = 5,
-      pictures =
-      {
         priority = "very-low",
         width = 363,
         height = 231,
@@ -42,11 +40,13 @@ data:extend(
         lines_per_file = 8,
         shift={1.93, -0.38}
 
-      },
-      --scale=20,
-      rail_category = "regular"
-    },
+      }
 
+tanker.horizontal_doors = nil
+tanker.vertical_doors = nil
+data:extend{tanker}
+data:extend(
+  {
     {
       type = "storage-tank",
       name = "rail-tanker-proxy",
