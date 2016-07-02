@@ -16,7 +16,7 @@ function debugLog(message, force, version)
     msg = version and version .. " " .. msg or msg
     log(msg)
     for _,player in pairs(game.players) do
-      player.print(msg)
+			player.print(msg)
     end
   end
 end
@@ -57,9 +57,33 @@ function addFluidItems(tanker)
       local amount = math.floor(tanker.fluidbox.amount)
       if amount > 0 then
         local tanker_inventory = tanker.entity.get_inventory(defines.inventory.chest)
-        tanker_inventory.setbar()
-        tanker.entity.insert{name=fluid_name, count=amount}
-        tanker_inventory.setbar(0)
+        tanker_inventory.insert{name=fluid_name, count=amount}
+      end
+    end
+  end
+end
+
+function updateFluidItems(tanker)
+  if isTankerValid(tanker) then
+    local fluidbox = tanker.proxy.fluidbox[1] or false
+    if not fluidbox then
+      tanker.entity.clear_items_inside()
+      return
+    end
+    local fluid_name = fluidbox and fluidbox.type or false
+    fluid_name = fluid_name .. "-in-tanker"
+    if game.item_prototypes[fluid_name] then
+
+      local amount = fluidbox and fluidbox.amount or 0
+      amount = amount > 2499.5 and 2500 or math.floor(amount)
+      local tanker_inventory = tanker.entity.get_inventory(defines.inventory.chest)
+      local current = tanker_inventory.get_item_count(fluid_name)
+      local diff = amount - current
+      --log("a: " .. amount .. " current: " .. current .. " diff:" .. diff)
+      if diff > 0 then
+        tanker_inventory.insert{name=fluid_name, count=diff}
+      elseif diff < 0 then
+        tanker_inventory.remove{name=fluid_name, count=-1*diff}
       end
     end
   end
@@ -69,6 +93,7 @@ Proxy = {}
 Proxy.create = function(tanker, found_pump)
   --local offsetPosition = {x = position.x, y = position.y}
   --offsetPosition = position
+  Proxy.pickup(tanker)
   local position, fluidbox, surface = tanker.entity.position, tanker.fluidbox, tanker.entity.surface
   local proxyName = "rail-tanker-proxy-noconnect"
   if not found_pump then
@@ -116,40 +141,30 @@ Proxy.find = function(position, surface)
 end
 
 on_tick = function(event)
-  if #global.manualTankers == 0 then
-    script.on_event(defines.events.on_tick, nil)
-    return
-  end
-
-  for i = #global.manualTankers, 1, -1 do
-    local tanker = global.manualTankers[i]
-    if isValid(tanker.entity) then
-      if isTankerMoving(tanker) then
-        Proxy.pickup(tanker)
-        addFluidItems(tanker)
-      elseif tanker.proxy == nil then
-        Proxy.create(tanker)
-        tanker.entity.clear_items_inside()
+  local tick = game.tick
+  local update = global.updateTankers[tick]
+  if update then
+    local updateTick = tick + 60
+    global.updateTankers[updateTick] = global.updateTankers[updateTick] or {}
+    for i, tanker in pairs(update) do
+      if isValid(tanker.entity) and tanker.update == event.tick then
+        updateFluidItems(tanker)
+        if not isTankerMoving(tanker) then
+          addTanker(tanker, updateTick)
+        end
       end
-    else
-      table.remove(global.manualTankers,i)
     end
+    if #global.updateTankers[updateTick] == 0 then
+      global.updateTankers[updateTick] = nil
+    end
+    global.updateTankers[tick] = nil
   end
 end
 
-add_manualTanker = function(tanker)
-  table.insert(global.manualTankers, tanker)
-  script.on_event(defines.events.on_tick, on_tick)
-end
-
-remove_manualTanker = function(entity)
-  for i=#global.manualTankers,1,-1 do
-    if global.manualTankers[i].entity == entity then
-      --debugLog(game.tick .. " remove manual " .. i)
-      table.remove(global.manualTankers, i)
-      return
-    end
-  end
+addTanker = function(tanker, tick)
+  global.updateTankers[tick] = global.updateTankers[tick] or {}
+  tanker.update = tick
+  table.insert(global.updateTankers[tick], tanker)
 end
 
 function getTankerFromEntity(entity)
@@ -194,7 +209,7 @@ function findTankers(show)
   for _, ent in pairs(surface.find_entities_filtered{area=bounds, type="cargo-wagon"}) do
     local i, tanker = getTankerFromEntity(ent)
     if i then
-      ent.operable = false
+      ent.operable = true
       local proxy = Proxy.find(ent.position,ent.surface)
       if proxy and proxy.valid then
         tanker.proxy = proxy
@@ -202,8 +217,8 @@ function findTankers(show)
           tanker.fluidbox = proxy.fluidbox[1]
         end
       end
-      if ent.train.state ==  defines.train_state.manual_control_stop or ent.train.state == defines.train_state.manual_control then
-        add_manualTanker(tanker)
+      if ent.train.speed ==  0 then
+        addTanker(tanker, game.tick + 60)
       end
     else
       on_entity_built({created_entity=ent})
@@ -248,7 +263,7 @@ end
 local function init_global()
   global = global or {}
   global.tankers = global.tankers or {}
-  global.manualTankers = global.manualTankers or {}
+  global.updateTankers = global.updateTankers or {}
 end
 
 local update_from_version = {
@@ -262,17 +277,37 @@ local update_from_version = {
   ["1.2.22"] = function()
     for _, t in pairs(global.tankers) do
       if isValid(t.entity) then
-        t.entity.operable = false
+        t.entity.operable = true
       end
     end
 
     for _, t in pairs(global.manualTankers) do
       if isValid(t.entity) then
-        t.entity.operable = false
+        t.entity.operable = true
       end
     end
-    return "1.3.0"
+    return "1.3.3"
   end,
+  ["1.3.0"] = function() return "1.3.3" end,
+  ["1.3.1"] = function() return "1.3.3" end,
+  ["1.3.2"] = function() return "1.3.3" end,
+  ["1.3.3"] = function()
+    local updateTick = game.tick + 60
+    global.updateTankers = global.updateTankers or {}
+    global.updateTankers[updateTick] = global.updateTankers[updateTick] or {}
+    for i, tanker in pairs(global.tankers) do
+      if isValid(tanker.entity) then
+        tanker.entity.operable = true
+        tanker.entity.get_inventory(defines.inventory.chest).setbar()
+        updateFluidItems(tanker)
+        if not isTankerMoving(tanker) then
+          addTanker(tanker, updateTick)
+        end
+      end
+    end
+    global.manualTankers = nil  
+  return "1.3.31" end,
+
 }
 
 local function on_configuration_changed(data)
@@ -288,7 +323,7 @@ local function on_configuration_changed(data)
       init_global()
       if oldVersion and newVersion then
         local ver = update_from_version[oldVersion] and oldVersion or "0.0.0"
-        while ver ~= "1.3.0" do
+        while ver ~= newVersion do
           ver = update_from_version[ver]()
         end
       end
@@ -305,34 +340,22 @@ end
 
 local function on_load()
   init_global()
-  if #global.manualTankers > 0 then
-    script.on_event(defines.events.on_tick, on_tick)
-  end
 end
 
 script.on_init(on_init)
 script.on_load(on_load)
 script.on_configuration_changed(on_configuration_changed)
+script.on_event(defines.events.on_tick, on_tick)
 
 on_entity_removed = function (event)
   local _, err = pcall(function()
     if isTankerEntity(event.entity) then
       local index, tanker = getTankerFromEntity(event.entity)
       if index and isTankerValid(tanker) then
-        local found
-        for i=#global.manualTankers,1,-1 do
-          local m = global.manualTankers[i]
-          if m.proxy == tanker.proxy then
-            found = i
-            break
-          end
-        end
         tanker.proxy.destroy()
         tanker.proxy = nil
+        tanker.entity.clear_items_inside()
         table.remove(global.tankers, index)
-        if found then
-          table.remove(global.manualTankers, found)
-        end
       end
     end
   end)
@@ -348,19 +371,12 @@ on_entity_built = function(event)
     local entity = event.created_entity
     if isTankerEntity(entity) then
       local tanker = {entity = entity}
-      entity.operable = false
-      local tanker_inventory = entity.get_inventory(defines.inventory.chest)
-      tanker_inventory.setbar(0)
+      entity.operable = true
       if not isTankerMoving(tanker) then
         tanker.proxy = Proxy.create(tanker)
       end
       table.insert(global.tankers, tanker)
-      debugLog("new tanker: " .. #global.tankers)
-      if entity.train.state == 9 then
-        debugLog("Manual Train")
-        add_manualTanker(tanker)
-        debugLog("manual tanker: " .. #global.manualTankers)
-      end
+      addTanker(tanker, game.tick + 60)
     elseif isPumpEntity(entity) then
       local position = entity.position
       local foundEntities = entity.surface.find_entities_filtered{area = {{position.x - 1.5, position.y - 1.5}, {position.x + 1.5, position.y + 1.5}}, name="rail-tanker"}
@@ -384,10 +400,8 @@ on_train_changed_state = function(event)
   local _, err = pcall(function()
     local train = event.train
     local state = train.state
-    local remove_manual = state ~= defines.train_state.manual_control_stop and state ~= defines.train_state.manual_control
-    local train_stopped = state == defines.train_state.wait_station
-    local add_manual = state == defines.train_state.manual_control_stop or state == defines.train_state.manual_control
-    --debugLog(game.tick .. " Tanker state: " .. key_by_value(defines.train_state, train.state))
+    local train_stopped = state == defines.train_state.wait_station or (state == defines.train_state.manual_control and train.speed == 0)
+    --debugLog(game.tick .. " Tanker state: " .. key_by_value(defines.train_state, train.state), true)
     for i,entity in pairs(train.cargo_wagons) do
       if isTankerEntity(entity) then
         local _, tanker = getTankerFromEntity(entity)
@@ -396,20 +410,19 @@ on_train_changed_state = function(event)
           tanker = {entity = entity}
           table.insert(global.tankers, tanker)
         end
-        if remove_manual then
-          remove_manualTanker(entity)
-        end
         if train_stopped then
-          --debugLog(game.tick .. " Train Stopped " .. i)
+          --debugLog(event.tick .. " Train Stopped " .. i, true)
+          local updateTick = event.tick + 60
           tanker.proxy = Proxy.create(tanker)
-          tanker.entity.clear_items_inside()
-        elseif add_manual then
-          --debugLog(game.tick .. " Train Manual " .. i)
-          add_manualTanker(tanker)
+          updateFluidItems(tanker)
+          global.updateTankers[updateTick] = global.updateTankers[updateTick] or {}
+          tanker.update = updateTick
+          addTanker(tanker, updateTick)
         else --moving
-          --debugLog(game.tick .. " Train moving" .. i)
+          --debugLog(event.tick .. " Train moving" .. i,true)
+          updateFluidItems(tanker)
           Proxy.pickup(tanker)
-          addFluidItems(tanker)
+          tanker.update = false
         end
       end
     end
@@ -440,7 +453,7 @@ remote.add_interface("railtanker",
     end,
 
     findTankers = function()
-      global.manualTankers = {}
+      global.updateTankers = {}
       findTankers(true)
     end,
   }

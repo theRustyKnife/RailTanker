@@ -7,8 +7,8 @@ for i, fluid in pairs(data.raw["fluid"]) do
     type = "item",
     name = fluid.name .. "-in-tanker",
     icon = fluid.icon,
-    flags = {"goes-to-main-inventory", "hidden"},
-    subgroup = "transport",
+    flags = {"goes-to-main-inventory"},
+    subgroup = "contents",
     order = "z[rail-tanker]",
     stack_size = 2500
   }
