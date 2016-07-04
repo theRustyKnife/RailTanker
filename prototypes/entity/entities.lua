@@ -18,30 +18,30 @@ end
 local tanker = copyPrototype("cargo-wagon", "cargo-wagon", "rail-tanker", true)
 tanker.inventory_size = 1
 tanker.color = {r = 1.0, g = 1.0, b = 1.0, a = 0.5}
-tanker.pictures = 
+tanker.pictures =
+  {
+    priority = "very-low",
+    width = 363,
+    height = 231,
+    axially_symmetrical = false,
+    --back_equals_front = true,
+    direction_count = 256,
+    filenames =
     {
-        priority = "very-low",
-        width = 363,
-        height = 231,
-        axially_symmetrical = false,
-        --back_equals_front = true,
-        direction_count = 256,
-        filenames =
-        {
-          "__RailTanker__/graphics/rail-tanker/rail-tanker-spritesheet-1.png",
-          "__RailTanker__/graphics/rail-tanker/rail-tanker-spritesheet-2.png",
-          "__RailTanker__/graphics/rail-tanker/rail-tanker-spritesheet-3.png",
-          "__RailTanker__/graphics/rail-tanker/rail-tanker-spritesheet-4.png",
-          "__RailTanker__/graphics/rail-tanker/rail-tanker-spritesheet-5.png",
-          "__RailTanker__/graphics/rail-tanker/rail-tanker-spritesheet-6.png",
-          "__RailTanker__/graphics/rail-tanker/rail-tanker-spritesheet-7.png",
-          "__RailTanker__/graphics/rail-tanker/rail-tanker-spritesheet-8.png",
-        },
-        line_length = 4,
-        lines_per_file = 8,
-        shift={1.93, -0.38}
+      "__RailTanker__/graphics/rail-tanker/rail-tanker-spritesheet-1.png",
+      "__RailTanker__/graphics/rail-tanker/rail-tanker-spritesheet-2.png",
+      "__RailTanker__/graphics/rail-tanker/rail-tanker-spritesheet-3.png",
+      "__RailTanker__/graphics/rail-tanker/rail-tanker-spritesheet-4.png",
+      "__RailTanker__/graphics/rail-tanker/rail-tanker-spritesheet-5.png",
+      "__RailTanker__/graphics/rail-tanker/rail-tanker-spritesheet-6.png",
+      "__RailTanker__/graphics/rail-tanker/rail-tanker-spritesheet-7.png",
+      "__RailTanker__/graphics/rail-tanker/rail-tanker-spritesheet-8.png",
+    },
+    line_length = 4,
+    lines_per_file = 8,
+    shift={1.93, -0.38}
 
-      }
+  }
 
 tanker.horizontal_doors = nil
 tanker.vertical_doors = nil
@@ -192,8 +192,14 @@ data:extend(
           }
         }
       },
-
-      circuit_wire_max_distance = 0
+      circuit_connector_sprites =
+      {
+        get_circuit_connector_sprites({-0.1875, -0.375}, nil, 7),
+        get_circuit_connector_sprites({0.375, -0.53125}, nil, 1),
+        get_circuit_connector_sprites({-0.1875, -0.375}, nil, 7),
+        get_circuit_connector_sprites({0.375, -0.53125}, nil, 1),
+      },
+      circuit_wire_max_distance = 0.1
     },
 
     {
@@ -255,7 +261,7 @@ data:extend(
         }
       },
       flow_length_in_ticks = 360,
-      circuit_wire_connection_points =
+      circuit_wire_connection_points = 
       {
         {
           shadow =
@@ -306,7 +312,13 @@ data:extend(
           }
         }
       },
-
-      circuit_wire_max_distance = 0
+      circuit_connector_sprites =
+      {
+        get_circuit_connector_sprites({-0.1875, -0.375}, nil, 7),
+        get_circuit_connector_sprites({0.375, -0.53125}, nil, 1),
+        get_circuit_connector_sprites({-0.1875, -0.375}, nil, 7),
+        get_circuit_connector_sprites({0.375, -0.53125}, nil, 1),
+      },
+      circuit_wire_max_distance = 0.1
     },
   })
