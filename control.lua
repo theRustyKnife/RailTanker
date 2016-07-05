@@ -16,7 +16,7 @@ function debugLog(message, force, version)
     msg = version and version .. " " .. msg or msg
     log(msg)
     for _,player in pairs(game.players) do
-			player.print(msg)
+      player.print(msg)
     end
   end
 end
@@ -305,8 +305,10 @@ local update_from_version = {
         end
       end
     end
-    global.manualTankers = nil  
-  return "1.3.31" end,
+    global.manualTankers = nil
+    return "1.3.31"
+  end,
+  ["1.3.31"] = function() return "1.3.32" end, 
 
 }
 
@@ -339,7 +341,7 @@ local function on_init()
 end
 
 local function on_load()
-  init_global()
+
 end
 
 script.on_init(on_init)
