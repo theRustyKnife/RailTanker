@@ -1,5 +1,5 @@
-PACKAGE_NAME := RailTanker
-VERSION_STRING := 1.3.32
+PACKAGE_NAME := $(shell cat info.json|jq -r .name)
+VERSION_STRING := $(shell cat info.json|jq -r .version)
 
 OUTPUT_NAME := $(PACKAGE_NAME)_$(VERSION_STRING)
 OUTPUT_DIR := build/$(OUTPUT_NAME)
