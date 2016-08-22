@@ -15,7 +15,7 @@ data:extend(
     },
   }
 )
-log("done")
+
 --entity
 require("prototypes.entity.entities")
 

@@ -15,6 +15,7 @@ function copyPrototype(type, name, newName, change_results)
   end
   return p
 end
+--<GotLag> just set the sprite scale to 0.9 and reduce the x shift to 1.72
 local tanker = copyPrototype("cargo-wagon", "cargo-wagon", "rail-tanker", true)
 tanker.inventory_size = 1
 tanker.color = {r = 1.0, g = 1.0, b = 1.0, a = 0.5}
@@ -40,11 +41,14 @@ tanker.pictures =
     line_length = 4,
     lines_per_file = 8,
     shift={1.93, -0.38}
+    --shift={1.72, -0.38},
+    --scale = 0.9
 
   }
 
 tanker.horizontal_doors = nil
 tanker.vertical_doors = nil
+
 data:extend{tanker}
 data:extend(
   {
