@@ -21,14 +21,6 @@ function debugLog(message, force, version)
   end
 end
 
-function key_by_value(tbl, value)
-  for i,c in pairs(tbl) do
-    if c == value then
-      return i
-    end
-  end
-end
-
 function isValid(entity)
   return (entity and entity.valid)
 end
@@ -47,20 +39,6 @@ end
 
 isPumpEntity = function (entity)
   return (isValid(entity) and entity.type == "pump")
-end
-
-function addFluidItems(tanker)
-  if not tanker.entity.has_items_inside() and tanker.fluidbox then
-    local fluid_name = tanker.fluidbox.type
-    fluid_name = fluid_name .. "-in-tanker"
-    if game.item_prototypes[fluid_name] then
-      local amount = math.floor(tanker.fluidbox.amount)
-      if amount > 0 then
-        local tanker_inventory = tanker.entity.get_inventory(defines.inventory.chest)
-        tanker_inventory.insert{name=fluid_name, count=amount}
-      end
-    end
-  end
 end
 
 function updateFluidItems(tanker)
@@ -146,7 +124,7 @@ on_tick = function(event)
   if update then
     local updateTick = tick + 60
     global.updateTankers[updateTick] = global.updateTankers[updateTick] or {}
-    for i, tanker in pairs(update) do
+    for _, tanker in pairs(update) do
       if isValid(tanker.entity) and tanker.update == event.tick then
         updateFluidItems(tanker)
         if not isTankerMoving(tanker) then
@@ -295,7 +273,7 @@ local update_from_version = {
     local updateTick = game.tick + 60
     global.updateTankers = global.updateTankers or {}
     global.updateTankers[updateTick] = global.updateTankers[updateTick] or {}
-    for i, tanker in pairs(global.tankers) do
+    for _, tanker in pairs(global.tankers) do
       if isValid(tanker.entity) then
         tanker.entity.operable = true
         tanker.entity.get_inventory(defines.inventory.chest).setbar()
@@ -308,7 +286,8 @@ local update_from_version = {
     global.manualTankers = nil
     return "1.3.31"
   end,
-  ["1.3.31"] = function() return "1.3.32" end, 
+  ["1.3.31"] = function() return "1.3.32" end,
+  ["1.3.32"] = function() return "1.3.33" end, 
 
 }
 
@@ -340,12 +319,7 @@ local function on_init()
   init_global()
 end
 
-local function on_load()
-
-end
-
 script.on_init(on_init)
-script.on_load(on_load)
 script.on_configuration_changed(on_configuration_changed)
 script.on_event(defines.events.on_tick, on_tick)
 
@@ -404,7 +378,7 @@ on_train_changed_state = function(event)
     local state = train.state
     local train_stopped = state == defines.train_state.wait_station or (state == defines.train_state.manual_control and train.speed == 0)
     --debugLog(game.tick .. " Tanker state: " .. key_by_value(defines.train_state, train.state), true)
-    for i,entity in pairs(train.cargo_wagons) do
+    for _, entity in pairs(train.cargo_wagons) do
       if isTankerEntity(entity) then
         local _, tanker = getTankerFromEntity(entity)
         if tanker == nil then
