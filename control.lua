@@ -83,7 +83,8 @@ Proxy.create = function(tanker, found_pump)
   else
     proxyName = "rail-tanker-proxy"
   end
-  local foundProxy = surface.create_entity{name=proxyName, position=position, force=tanker.entity.force}
+  local foundProxy = surface.create_entity{name=proxyName, position=position, force=game.forces["neutral"] or tanker.entity.force}
+  foundProxy.destructible = false
   --local foundProxy = Proxy.find(position)
   foundProxy.fluidbox[1] = fluidbox
   --debugLog(game.tick .. " created " .. foundProxy.name)
